@@ -25,6 +25,7 @@ namespace Tanks.Complete
         private void OnEnable()
         {
             _tankHealth.OnUpdateHealth += SetHealthUI;
+            SetHealthUI(_tankHealth.GetCurrentHealth());
         }
 
         private void OnDisable()

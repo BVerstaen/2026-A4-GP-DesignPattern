@@ -44,9 +44,6 @@ namespace Tanks.Complete
             m_HasShield = false;
             m_ShieldValue = 0;
             m_IsInvincible = false;
-
-            // Update the health slider's value and color.
-            OnUpdateHealth?.Invoke(m_CurrentHealth);
         }
 
         public void ToggleShield (float shieldAmount)
