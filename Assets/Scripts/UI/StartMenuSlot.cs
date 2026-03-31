@@ -10,8 +10,9 @@ namespace Tanks.Complete
     public class StartMenuSlot : MonoBehaviour
     {
         public Color m_SlotColor;                       // The color the tank in that slot will take
-        
+
         [Header("References")]
+
         public RectTransform m_TankPreviewPosition;     // The Transform on which to place the Tank preview so it display at the right place on screen
         public TextMeshProUGUI m_TankStats;             // The Text to use to display the tank stats
         public Button m_AddControlButton;               // The button on which when clicked the tank get added to the current game
@@ -125,14 +126,14 @@ namespace Tanks.Complete
             // get reference to all components
             var move = TankPreview.GetComponent<TankMovement> ();
             var shoot = TankPreview.GetComponent<TankShooting> ();
-            var health = TankPreview.GetComponent<TankHealth>();
+            var health = TankPreview.GetComponent<IHealth>();
 
             // disable them, as this is a visual only preview and doesn't need to react to any gameplay like user input etc.
             move.enabled = false;
             shoot.enabled = false;
 
             // update the tank stats text with this tank stats
-            m_TankStats.text = $"Speed {move.m_Speed}\nDamage {shoot.m_MaxDamage}\nHealth: {health.m_StartingHealth}";
+            m_TankStats.text = $"Speed {move.m_Speed}\nDamage {shoot.m_MaxDamage}\nHealth: {health.GetStartingHealth()}";
             
             //move it to the right preview position so it appears in the right spot on screen
             var position = m_MenuCamera.WorldToScreenPoint(m_TankPreviewPosition.position);
