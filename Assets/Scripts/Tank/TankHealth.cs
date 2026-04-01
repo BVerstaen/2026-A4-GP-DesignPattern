@@ -16,7 +16,7 @@ namespace Tanks.Complete
         private float m_ShieldValue;                        // Percentage of reduced damage when the tank has a shield.
         private bool m_IsInvincible;                        // Is the tank invincible in this moment?
 
-        public Action<float> OnUpdateHealth;
+        public event Action<float> OnUpdateHealth;
 
         private void Awake ()
         {
@@ -44,8 +44,6 @@ namespace Tanks.Complete
             m_HasShield = false;
             m_ShieldValue = 0;
             m_IsInvincible = false;
-
-            OnUpdateHealth?.Invoke(m_CurrentHealth);
         }
 
         public void ToggleShield (float shieldAmount)

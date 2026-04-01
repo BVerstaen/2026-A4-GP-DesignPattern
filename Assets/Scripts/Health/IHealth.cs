@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public interface IHealth
@@ -7,4 +8,5 @@ public interface IHealth
 
     public void TakeDamage(float amount);
 
+    event Action<float> OnUpdateHealth;
 }

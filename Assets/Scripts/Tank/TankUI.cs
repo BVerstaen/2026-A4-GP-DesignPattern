@@ -16,12 +16,13 @@ namespace Tanks.Complete
 
         private float _startingHealth;
 
-        private void Awake()
+        private void Start()
         {
             _startingHealth = _tankHealth.GetStartingHealth();
             m_Slider.maxValue = _startingHealth;
-            
             _tankHealth.OnUpdateHealth += SetHealthUI;
+
+            SetHealthUI(_tankHealth.GetCurrentHealth());
         }
 
         private void OnDestroy()
