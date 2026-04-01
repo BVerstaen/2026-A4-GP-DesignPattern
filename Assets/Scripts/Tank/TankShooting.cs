@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -47,7 +49,19 @@ namespace Tanks.Complete
         private bool m_IsCharging = false;          // Are we currently charging the shot
         private float m_BaseMinLaunchForce;         // The initial value of m_MinLaunchForce
         private float m_ShotCooldownTimer;          // The timer counting down before a shot is allowed again
-        
+
+        private Coroutine _cooldownFireCoroutine;
+        private Coroutine _powerFireCoroutine;
+
+        private bool CanFire { get => _cooldownFireCoroutine == null; }
+
+        private void Awake()
+        {
+            m_InputUser = GetComponent<TankInputUser>();
+            if (m_InputUser == null)
+                m_InputUser = gameObject.AddComponent<TankInputUser>();
+        }
+
         private void OnEnable()
         {
             // When the tank is turned on, reset the launch force, the UI and the power ups
@@ -61,13 +75,6 @@ namespace Tanks.Complete
             m_AimSlider.maxValue = m_MaxLaunchForce;
         }
 
-        private void Awake()
-        {
-            m_InputUser = GetComponent<TankInputUser>();
-            if (m_InputUser == null)
-                m_InputUser = gameObject.AddComponent<TankInputUser>();
-        }
-
         private void Start ()
         {
             // The fire axis is based on the player number.
@@ -78,20 +85,16 @@ namespace Tanks.Complete
 
             // The rate that the launch force charges up is the range of possible forces by the max charge time.
             m_ChargeSpeed = (m_MaxLaunchForce - m_MinLaunchForce) / m_MaxChargeTime;
-        }
 
+            fireAction.started += InputStartShooting;
+            fireAction.canceled += InputReleaseShooting;
+        }
 
         private void Update ()
         {
             // Computer and Human control Tank use 2 different update functions 
-            if (!m_IsComputerControlled)
-            {
-                HumanUpdate();
-            }
-            else
-            {
+            if (m_IsComputerControlled)
                 ComputerUpdate();
-            }
         }
 
         /// <summary>
@@ -146,54 +149,68 @@ namespace Tanks.Complete
                 m_IsCharging = false;
             }
         }
-        
-        void HumanUpdate()
+
+        private void InputStartShooting(InputAction.CallbackContext context)
         {
-            // if there is a cooldown timer, decrement it
-            if (m_ShotCooldownTimer > 0.0f)
-            {
-                m_ShotCooldownTimer -= Time.deltaTime;
-            }
-            
-            // The slider should have a default value of the minimum launch force.
+            if (!CanFire)
+                return;
+
+            _cooldownFireCoroutine = StartCoroutine(CooldownCoroutine());
+            _powerFireCoroutine = StartCoroutine(PowerRoutine());
+        }
+
+        private void InputReleaseShooting(InputAction.CallbackContext context)
+        {
+            if (m_Fired)
+                return;
+
             m_AimSlider.value = m_BaseMinLaunchForce;
+            Fire();
 
-            // If the max force has been exceeded and the shell hasn't yet been launched...
-            if (m_CurrentLaunchForce >= m_MaxLaunchForce && !m_Fired)
+            if(_powerFireCoroutine != null)
             {
-                // ... use the max force and launch the shell.
-                m_CurrentLaunchForce = m_MaxLaunchForce;
-                Fire ();
-            }
-            // Otherwise, if the fire button has just started being pressed...
-            else if (m_ShotCooldownTimer <= 0 && fireAction.WasPressedThisFrame())
-            {
-                // ... reset the fired flag and reset the launch force.
-                m_Fired = false;
-                m_CurrentLaunchForce = m_MinLaunchForce;
-
-                // Change the clip to the charging clip and start it playing.
-                m_ShootingAudio.clip = m_ChargingClip;
-                m_ShootingAudio.Play ();
-            }
-            // Otherwise, if the fire button is being held and the shell hasn't been launched yet...
-            else if (fireAction.IsPressed() && !m_Fired)
-            {
-                // Increment the launch force and update the slider.
-                m_CurrentLaunchForce += m_ChargeSpeed * Time.deltaTime;
-
-                m_AimSlider.value = m_CurrentLaunchForce;
-            }
-            // Otherwise, if the fire button is released and the shell hasn't been launched yet...
-            else if (fireAction.WasReleasedThisFrame() && !m_Fired)
-            {
-                // ... launch the shell.
-                Fire ();
+                StopCoroutine(_powerFireCoroutine);
+                _powerFireCoroutine = null;
             }
         }
 
+        IEnumerator PowerRoutine()
+        {
+            // The slider should have a default value of the minimum launch force.
+            m_AimSlider.value = m_BaseMinLaunchForce;
 
-        private void Fire ()
+            // Change the clip to the charging clip and start it playing.
+            m_ShootingAudio.clip = m_ChargingClip;
+            m_ShootingAudio.Play();
+
+            // ... reset the fired flag and reset the launch force.
+            m_Fired = false;
+            m_CurrentLaunchForce = m_MinLaunchForce;
+
+            while (m_CurrentLaunchForce < m_MaxLaunchForce)
+            {
+                // Increment the launch force and update the slider.
+                m_CurrentLaunchForce += m_ChargeSpeed * Time.deltaTime;
+                m_AimSlider.value = m_CurrentLaunchForce;
+
+                yield return null;
+            }
+            m_AimSlider.value = m_BaseMinLaunchForce;
+            
+            // ... use the max force and launch the shell.
+            m_CurrentLaunchForce = m_MaxLaunchForce;
+            Fire();
+        }
+
+        IEnumerator CooldownCoroutine()
+        {
+            // if there is a cooldown timer
+            yield return new WaitForSeconds(m_ShotCooldownTimer);
+            _cooldownFireCoroutine = null;
+        }
+
+
+        private void Fire()
         {
             // Set the fired flag so only Fire is only called once.
             m_Fired = true;
