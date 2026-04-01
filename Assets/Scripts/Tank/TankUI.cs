@@ -20,15 +20,11 @@ namespace Tanks.Complete
         {
             _startingHealth = _tankHealth.GetStartingHealth();
             m_Slider.maxValue = _startingHealth;
-        }
-
-        private void OnEnable()
-        {
+            
             _tankHealth.OnUpdateHealth += SetHealthUI;
-            SetHealthUI(_tankHealth.GetCurrentHealth());
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             _tankHealth.OnUpdateHealth -= SetHealthUI;
         }
