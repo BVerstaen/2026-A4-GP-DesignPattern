@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -50,8 +51,8 @@ namespace Tanks.Complete
         private float m_BaseMinLaunchForce;         // The initial value of m_MinLaunchForce
         private float m_ShotCooldownTimer;          // The timer counting down before a shot is allowed again
 
-        private Coroutine _cooldownFireCoroutine;
-        private Coroutine _powerFireCoroutine;
+        private Awaitable _cooldownFireCoroutine;
+        private Awaitable _powerFireCoroutine;
 
         private bool CanFire { get => _cooldownFireCoroutine == null; }
 
@@ -155,8 +156,8 @@ namespace Tanks.Complete
             if (!CanFire)
                 return;
 
-            _cooldownFireCoroutine = StartCoroutine(CooldownCoroutine());
-            _powerFireCoroutine = StartCoroutine(PowerRoutine());
+            _ = CooldownWaitAsync();
+            _ = PowerRoutineAsync();
         }
 
         private void InputReleaseShooting(InputAction.CallbackContext context)
@@ -174,7 +175,7 @@ namespace Tanks.Complete
             }
         }
 
-        IEnumerator PowerRoutine()
+        async Awaitable PowerRoutineAsync()
         {
             // The slider should have a default value of the minimum launch force.
             m_AimSlider.value = m_BaseMinLaunchForce;
@@ -193,7 +194,7 @@ namespace Tanks.Complete
                 m_CurrentLaunchForce += m_ChargeSpeed * Time.deltaTime;
                 m_AimSlider.value = m_CurrentLaunchForce;
 
-                yield return null;
+                await Awaitable.NextFrameAsync();
             }
             m_AimSlider.value = m_BaseMinLaunchForce;
             
@@ -202,10 +203,10 @@ namespace Tanks.Complete
             Fire();
         }
 
-        IEnumerator CooldownCoroutine()
+        async Awaitable CooldownWaitAsync()
         {
             // if there is a cooldown timer
-            yield return new WaitForSeconds(m_ShotCooldownTimer);
+            await Awaitable.WaitForSecondsAsync(m_ShotCooldownTimer);
             _cooldownFireCoroutine = null;
         }
 
